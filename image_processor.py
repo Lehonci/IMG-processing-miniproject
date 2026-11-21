@@ -84,6 +84,32 @@ LIST_PEKERJAAN = [
     "SOPIR",
 ]
 
+COMMON_NAME_TOKENS = [
+    "BUDI", "SANTOSO", "DEWI", "LESTARI", "RAFI", "PRATAMA", "NADIA", "PUTRI",
+    "HENDRA", "SITI", "AMINAH", "AHMAD", "HIDAYAT", "RATNA", "SARI",
+    "IRWAN", "SETIAWAN", "RINA", "WULANDARI", "KEVIN", "ADITYA",
+    "SOEHARTO", "MARYAM", "BAMBANG", "SUTRISNO", "SRI", "WAHYUNI",
+    "RISKI", "SISWONO", "MUHAMMAD", "ABDUL", "PUTRA", "AGUS", "ANDI",
+]
+
+COMMON_LOCATION_TOKENS = [
+    "BOGOR", "TIMUR", "BARAT", "UTARA", "SELATAN", "TENGAH", "PUSAT",
+    "JAKARTA", "BANDUNG", "SEMARANG", "SURABAYA", "BONTANG", "SAMARINDA",
+    "BALIKPAPAN", "TEBET", "BARANANGSIANG", "JAWA", "KALIMANTAN", "SUMATERA",
+]
+
+
+def _normalize_spaced_text(text: str, vocab_tokens: List[str]) -> str:
+    """Memisahkan kata-kata yang menempel akibat pembacaan OCR (contoh: BUDISANTOSO -> BUDI SANTOSO)."""
+    if not text or text == "-":
+        return text
+    val = re.sub(r"\s+", " ", text.upper()).strip()
+    for tok in sorted(vocab_tokens, key=len, reverse=True):
+        # Pisahkan jika menempel di depan atau di belakang kata lain
+        val = re.sub(rf"\b({tok})([A-Z]{{3,}})\b", r"\1 \2", val)
+        val = re.sub(rf"\b([A-Z]{{3,}})({tok})\b", r"\1 \2", val)
+    return re.sub(r"\s+", " ", val).strip()
+
 LIST_GOL_DARAH = ["A", "B", "AB", "O", "TIDAK TAHU", "-"]
 
 LIST_STATUS_KAWIN = [
@@ -621,14 +647,22 @@ def _extract_identitas_header(tokens: List[Dict[str, Any]]) -> Dict[str, str]:
         if not identitas[k] and idx < len(right_values):
             identitas[k] = right_values[idx]
 
-    identitas["alamat"] = re.sub(r"^JL(?=[A-Z])", "JL. ", identitas["alamat"]).replace("SOEPRATMIAN", "SOEPRATMAN")
+    identitas["nama_kepala_keluarga"] = _normalize_spaced_text(identitas["nama_kepala_keluarga"], COMMON_NAME_TOKENS)
+    identitas["alamat"] = re.sub(r"^JL\.(?=[A-Z])", "JL. ", re.sub(r"^JL(?=[A-Z])", "JL. ", identitas["alamat"])).replace("SOEPRATMIAN", "SOEPRATMAN")
+    identitas["alamat"] = re.sub(r"\bNO\.(?=\d)", "NO. ", identitas["alamat"])
     if identitas["rt_rw"].endswith("-") and "/" not in identitas["rt_rw"]:
         identitas["rt_rw"] = identitas["rt_rw"][:-1] + "/-"
     if identitas["kode_pos"]:
         kp = _clean_digits(identitas["kode_pos"])
         if len(kp) >= 5:
             identitas["kode_pos"] = kp[:5]
-    identitas["provinsi"] = identitas["provinsi"].replace("KALIMANTANTIMUR", "KALIMANTAN TIMUR")
+    identitas["desa_kelurahan"] = _normalize_spaced_text(identitas["desa_kelurahan"], COMMON_LOCATION_TOKENS)
+    identitas["kecamatan"] = _normalize_spaced_text(identitas["kecamatan"], COMMON_LOCATION_TOKENS)
+    identitas["kabupaten_kota"] = _normalize_spaced_text(identitas["kabupaten_kota"], COMMON_LOCATION_TOKENS)
+    identitas["provinsi"] = _normalize_spaced_text(
+        identitas["provinsi"].replace("KALIMANTANTIMUR", "KALIMANTAN TIMUR"),
+        COMMON_LOCATION_TOKENS,
+    )
 
     for tok in tokens:
         if tok["ny"] > 0.70:
@@ -750,7 +784,7 @@ def _extract_anggota_via_opencv_cells(
         anggota_list.append(
             {
                 "no_urut": len(anggota_list) + 1,
-                "nama_lengkap": nama_clean,
+                "nama_lengkap": _normalize_spaced_text(nama_clean, COMMON_NAME_TOKENS),
                 "nik": nik_digits[:16],
                 "jenis_kelamin": jk_norm,
                 "tempat_lahir": tempat_norm,
@@ -765,8 +799,8 @@ def _extract_anggota_via_opencv_cells(
                 "kewarganegaraan": wni_norm,
                 "no_paspor": raw_paspor if raw_paspor != "-" else "-",
                 "no_kitap": raw_kitap if raw_kitap != "-" else "-",
-                "nama_ayah": re.sub(r"[^A-Z\s.,']", "", raw_ayah.upper()).strip() or "-",
-                "nama_ibu": re.sub(r"[^A-Z\s.,']", "", raw_ibu.upper()).strip() or "-",
+                "nama_ayah": _normalize_spaced_text(re.sub(r"[^A-Z\s.,']", "", raw_ayah.upper()).strip() or "-", COMMON_NAME_TOKENS),
+                "nama_ibu": _normalize_spaced_text(re.sub(r"[^A-Z\s.,']", "", raw_ibu.upper()).strip() or "-", COMMON_NAME_TOKENS),
             }
         )
 
@@ -866,10 +900,12 @@ def _parse_tables_from_full_tokens(tokens: List[Dict[str, Any]]) -> List[Dict[st
                 elif 0.805 <= t["nx_min"] < 0.90:
                     pek_p.append(txt)
 
-            row_u["nama_lengkap"] = " ".join(nama_p).strip()
-            row_u["tempat_lahir"] = " ".join(tempat_p).strip()
-            row_u["pendidikan"] = " ".join(pend_p).strip()
-            row_u["jenis_pekerjaan"] = " ".join(pek_p).strip()
+            row_u["nama_lengkap"] = _normalize_spaced_text(" ".join(nama_p).strip(), COMMON_NAME_TOKENS)
+            row_u["tempat_lahir"] = _normalize_spaced_text(" ".join(tempat_p).strip(), COMMON_LOCATION_TOKENS)
+            raw_pend = " ".join(pend_p).strip()
+            row_u["pendidikan"] = _match_closest_vocab(raw_pend, LIST_PENDIDIKAN, min_ratio=0.35) if raw_pend else ""
+            raw_pek = " ".join(pek_p).strip()
+            row_u["jenis_pekerjaan"] = _match_closest_vocab(raw_pek, LIST_PEKERJAAN, min_ratio=0.38) if raw_pek else ""
             if row_u["nama_lengkap"] and row_u["nik"]:
                 upper_rows.append(row_u)
 
@@ -906,14 +942,16 @@ def _parse_tables_from_full_tokens(tokens: List[Dict[str, Any]]) -> List[Dict[st
                 elif t["nx_min"] >= 0.835:
                     ib_p.append(txt)
 
-            row_l["status_perkawinan"] = " ".join(sk_p).strip()
-            row_l["status_hubungan"] = " ".join(sh_p).strip()
+            raw_sk = " ".join(sk_p).strip()
+            row_l["status_perkawinan"] = _match_closest_vocab(raw_sk, LIST_STATUS_KAWIN, min_ratio=0.38) if raw_sk else ""
+            raw_sh = " ".join(sh_p).strip()
+            row_l["status_hubungan"] = _match_closest_vocab(raw_sh, LIST_STATUS_HUBUNGAN, min_ratio=0.38) if raw_sh else ""
             if pas_p:
                 row_l["no_paspor"] = " ".join(pas_p).strip()
             if kit_p:
                 row_l["no_kitap"] = " ".join(kit_p).strip()
-            row_l["nama_ayah"] = " ".join(ay_p).strip()
-            row_l["nama_ibu"] = " ".join(ib_p).strip()
+            row_l["nama_ayah"] = _normalize_spaced_text(" ".join(ay_p).strip(), COMMON_NAME_TOKENS)
+            row_l["nama_ibu"] = _normalize_spaced_text(" ".join(ib_p).strip(), COMMON_NAME_TOKENS)
             if row_l["status_perkawinan"] or row_l["status_hubungan"] or row_l["nama_ayah"]:
                 lower_rows.append(row_l)
 

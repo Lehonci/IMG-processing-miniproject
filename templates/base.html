@@ -3,128 +3,504 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Sistem Ekstraksi Citra Kartu Keluarga (KK) - PCD{% endblock %}</title>
+    <title>{% block title %}DigiKK-OCR &mdash; Sistem Cerdas Ekstraksi &amp; Basis Data Kartu Keluarga{% endblock %}</title>
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Bootstrap 5.3 CSS & Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary-navy: #0f2942;
-            --accent-blue: #1d63b8;
-            --soft-bg: #f4f7fb;
+            --ink-950: #060d1e;
+            --ink-900: #0f172a;
+            --ink-700: #334155;
+            --ink-500: #64748b;
+            --brand-700: #1d4ed8;
+            --brand-600: #2563eb;
+            --brand-500: #3b82f6;
+            --indigo-600: #4f46e5;
+            --cyan-500: #06b6d4;
+            --emerald-600: #059669;
+            --amber-500: #f59e0b;
+            --surface-bg: #eef2f9;
+            --card-radius: 22px;
         }
+
         body {
-            background-color: var(--soft-bg);
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            color: #1e293b;
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            color: var(--ink-900);
+            background-color: var(--surface-bg);
+            background-image:
+                radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.14) 0px, transparent 48%),
+                radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.14) 0px, transparent 48%),
+                radial-gradient(at 50% 100%, rgba(37, 99, 235, 0.08) 0px, transparent 55%),
+                linear-gradient(to right, rgba(148, 163, 184, 0.07) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(148, 163, 184, 0.07) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
-        .navbar-custom {
-            background: linear-gradient(135deg, #0f2942 0%, #1d4ed8 100%);
-            box-shadow: 0 3px 14px rgba(15, 41, 66, 0.18);
+
+        .font-monospace {
+            font-family: 'JetBrains Mono', 'Consolas', monospace !important;
         }
-        .card-modern {
-            border: 1px solid rgba(226, 232, 240, 0.9);
-            border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
-            background: #ffffff;
+
+        /* ================= NAVBAR PREMIUM ================= */
+        .navbar-glass {
+            background: rgba(8, 17, 38, 0.88);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px -10px rgba(6, 13, 30, 0.45);
+            padding: 0.7rem 0;
         }
-        .card-header-navy {
-            background: linear-gradient(135deg, #0f2942 0%, #1e40af 100%);
+
+        .brand-logo-wrap {
+            width: 44px;
+            height: 44px;
+            border-radius: 13px;
+            background: linear-gradient(135deg, #3b82f6 0%, #6366f1 55%, #06b6d4 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: #ffffff;
-            border-top-left-radius: 13px !important;
-            border-top-right-radius: 13px !important;
-            padding: 0.9rem 1.25rem;
+            font-size: 1.35rem;
+            box-shadow: 0 6px 18px rgba(59, 130, 246, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.4);
         }
-        .step-badge {
+
+        .brand-title {
+            font-weight: 800;
+            font-size: 1.15rem;
+            letter-spacing: -0.02em;
+            color: #ffffff;
+        }
+
+        .brand-chip {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 0.22rem 0.55rem;
+            border-radius: 50rem;
+            background: linear-gradient(90deg, rgba(56, 189, 248, 0.22), rgba(129, 140, 248, 0.22));
+            color: #7dd3fc;
+            border: 1px solid rgba(125, 211, 252, 0.35);
+        }
+
+        .nav-step-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1.05rem !important;
+            border-radius: 12px;
+            font-size: 0.84rem;
+            font-weight: 600;
+            color: rgba(226, 232, 240, 0.85) !important;
+            border: 1px solid transparent;
+            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .nav-step-pill:hover {
+            color: #ffffff !important;
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.14);
+            transform: translateY(-1px);
+        }
+
+        .nav-step-pill.active {
+            color: #ffffff !important;
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.9) 0%, rgba(79, 70, 229, 0.9) 100%);
+            border-color: rgba(147, 197, 253, 0.4);
+            box-shadow: 0 6px 18px rgba(37, 99, 235, 0.4);
+        }
+
+        /* ================= HERO BANNER ================= */
+        .hero-banner {
+            position: relative;
+            overflow: hidden;
+            border-radius: var(--card-radius);
+            background: linear-gradient(130deg, #071126 0%, #112559 48%, #1e3a8a 78%, #1d4ed8 100%);
+            color: #ffffff;
+            padding: 1.75rem 2rem;
+            box-shadow: 0 18px 40px -12px rgba(15, 23, 42, 0.32);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .hero-banner::before {
+            content: "";
+            position: absolute;
+            width: 380px;
+            height: 380px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.25) 0%, transparent 70%);
+            top: -160px;
+            right: -90px;
+            pointer-events: none;
+        }
+
+        .hero-banner::after {
+            content: "";
+            position: absolute;
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(129, 140, 248, 0.22) 0%, transparent 70%);
+            bottom: -140px;
+            left: 18%;
+            pointer-events: none;
+        }
+
+        .hero-kicker {
             display: inline-flex;
             align-items: center;
             gap: 0.45rem;
-            padding: 0.4rem 0.9rem;
+            padding: 0.3rem 0.85rem;
             border-radius: 50rem;
-            font-size: 0.82rem;
-            font-weight: 600;
+            background: rgba(255, 255, 255, 0.11);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #93c5fd;
         }
-        .table-kk th {
-            background-color: #1e3a8a;
+
+        /* ================= WORKFLOW STEPPER TIMELINE (READ-ONLY INDICATOR) ================= */
+        .stepper-shell {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.95);
+            border-radius: 18px;
+            padding: 0.85rem 1.25rem;
+            box-shadow: 0 8px 26px -8px rgba(15, 23, 42, 0.08);
+        }
+
+        .step-node {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.5rem 1rem;
+            border-radius: 14px;
+            font-size: 0.83rem;
+            font-weight: 700;
+            text-decoration: none;
+            border: 1px solid transparent;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        .step-node .step-num {
+            width: 26px;
+            height: 26px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.78rem;
+            font-weight: 800;
+        }
+
+        .step-node.is-active {
+            background: linear-gradient(135deg, #1d4ed8 0%, #4f46e5 100%);
             color: #ffffff;
-            font-size: 0.82rem;
-            font-weight: 600;
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
+        }
+        .step-node.is-active .step-num {
+            background: rgba(255, 255, 255, 0.22);
+            color: #ffffff;
+        }
+
+        .step-node.is-confirm {
+            background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+            color: #0f172a;
+            box-shadow: 0 6px 16px rgba(245, 158, 11, 0.28);
+        }
+        .step-node.is-confirm .step-num {
+            background: rgba(15, 23, 42, 0.15);
+            color: #0f172a;
+        }
+
+        .step-node.is-done {
+            background: #ecfdf5;
+            color: #047857;
+            border-color: #a7f3d0;
+        }
+        .step-node.is-done .step-num {
+            background: #10b981;
+            color: #ffffff;
+        }
+
+        .step-node.is-idle {
+            background: #f8fafc;
+            color: #64748b;
+            border-color: #e2e8f0;
+        }
+        .step-node.is-idle .step-num {
+            background: #e2e8f0;
+            color: #64748b;
+        }
+
+        /* ================= CARDS & CONTAINERS ================= */
+        .card-modern {
+            border: 1px solid rgba(226, 232, 240, 0.95);
+            border-radius: var(--card-radius);
+            background: #ffffff;
+            box-shadow: 0 12px 32px -10px rgba(15, 23, 42, 0.07);
+            overflow: hidden;
+            transition: box-shadow 0.25s ease;
+        }
+
+        .card-header-navy {
+            background: linear-gradient(135deg, #0b1936 0%, #17326d 55%, #1e40af 100%);
+            color: #ffffff;
+            padding: 1.15rem 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .card-header-soft {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1.15rem 1.5rem;
+        }
+
+        /* ================= KPI / STAT CARDS ================= */
+        .kpi-card {
+            position: relative;
+            overflow: hidden;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 1.15rem 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 8px 22px -10px rgba(15, 23, 42, 0.06);
+        }
+        .kpi-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.45rem;
+            flex-shrink: 0;
+        }
+        .kpi-icon.blue {
+            background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+        }
+        .kpi-icon.amber {
+            background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);
+            color: #d97706;
+            border: 1px solid #fde68a;
+        }
+        .kpi-icon.emerald {
+            background: linear-gradient(135deg, #d1fae5 0%, #ecfdf5 100%);
+            color: #059669;
+            border: 1px solid #a7f3d0;
+        }
+
+        /* ================= TABLES ================= */
+        .table-kk {
+            margin-bottom: 0;
+        }
+        .table-kk thead th {
+            background: #0f2347;
+            color: #f8fafc;
+            font-size: 0.76rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
             vertical-align: middle;
             white-space: nowrap;
+            padding: 0.85rem 0.8rem;
+            border-color: #1e3a6e;
         }
-        .table-kk td {
-            font-size: 0.85rem;
+        .table-kk tbody td {
+            font-size: 0.84rem;
             vertical-align: middle;
+            padding: 0.72rem 0.8rem;
+            border-color: #e2e8f0;
         }
-        .form-control-sm-kk {
-            font-size: 0.82rem;
-            padding: 0.3rem 0.48rem;
-            min-width: 115px;
+        .table-kk tbody tr {
+            transition: background-color 0.15s ease;
         }
-        .stage-thumb {
-            cursor: pointer;
-            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        .table-kk tbody tr:hover {
+            background-color: #f1f5f9;
+        }
+
+        /* Form Inputs */
+        .form-control, .form-select {
+            border-radius: 10px;
+            border-color: #cbd5e1;
+            padding: 0.55rem 0.85rem;
+            font-size: 0.9rem;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+        }
+
+        .form-control-sm-kk, .form-select-sm-kk {
+            font-size: 0.81rem;
+            padding: 0.38rem 0.6rem;
             border-radius: 8px;
-            border: 2px solid #e2e8f0;
+            border: 1px solid #cbd5e1;
+            background-color: #ffffff;
+            transition: all 0.15s ease;
         }
-        .stage-thumb:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 14px rgba(29, 78, 216, 0.18);
+        .form-control-sm-kk:focus, .form-select-sm-kk:focus {
             border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+            background-color: #ffffff;
         }
+
+        /* Sticky columns in wide confirmation table */
+        .sticky-col-no {
+            position: sticky;
+            left: 0;
+            z-index: 2;
+            background-color: #f8fafc !important;
+            box-shadow: inset -1px 0 0 #cbd5e1;
+        }
+        thead .sticky-col-no {
+            z-index: 3;
+            background-color: #0b1936 !important;
+        }
+        .sticky-col-action {
+            position: sticky;
+            right: 0;
+            z-index: 2;
+            background-color: #f8fafc !important;
+            box-shadow: inset 1px 0 0 #cbd5e1;
+        }
+        thead .sticky-col-action {
+            z-index: 3;
+            background-color: #0b1936 !important;
+        }
+
+        /* Dropzone & Sample Cards */
         .upload-dropzone {
-            border: 2px dashed #93c5fd;
-            border-radius: 14px;
-            background: #f8fafc;
-            transition: all 0.2s ease;
+            position: relative;
+            border: 2px dashed #60a5fa;
+            border-radius: 20px;
+            background: radial-gradient(circle at center, #ffffff 0%, #eff6ff 100%);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
             cursor: pointer;
         }
         .upload-dropzone:hover, .upload-dropzone.dragover {
             border-color: #2563eb;
-            background: #eff6ff;
+            background: radial-gradient(circle at center, #eff6ff 0%, #dbeafe 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 14px 30px -10px rgba(37, 99, 235, 0.22);
         }
+
+        .sample-item-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            background: #ffffff;
+            padding: 0.95rem;
+            transition: all 0.22s ease;
+        }
+        .sample-item-card:hover {
+            border-color: #93c5fd;
+            background: #f8fafc;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px -10px rgba(37, 99, 235, 0.16);
+        }
+
+        .stage-thumb {
+            cursor: pointer;
+            transition: all 0.22s ease;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+        }
+        .stage-thumb:hover {
+            transform: scale(1.03);
+            box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
+            border-color: #3b82f6;
+        }
+
+        /* Buttons */
+        .btn-brand-gradient {
+            background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+            color: #ffffff;
+            border: none;
+            box-shadow: 0 8px 20px -6px rgba(37, 99, 235, 0.45);
+            transition: all 0.2s ease;
+        }
+        .btn-brand-gradient:hover {
+            background: linear-gradient(135deg, #1d4ed8 0%, #4338ca 100%);
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 12px 24px -6px rgba(37, 99, 235, 0.55);
+        }
+
+        .btn-emerald-gradient {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            color: #ffffff;
+            border: none;
+            box-shadow: 0 8px 20px -6px rgba(5, 150, 105, 0.45);
+            transition: all 0.2s ease;
+        }
+        .btn-emerald-gradient:hover {
+            background: linear-gradient(135deg, #047857 0%, #059669 100%);
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 12px 24px -6px rgba(5, 150, 105, 0.55);
+        }
+
         .badge-db {
-            font-family: 'Consolas', 'Courier New', monospace;
-            font-size: 0.78rem;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 0.76rem;
+            padding: 0.4rem 0.75rem;
+            border-radius: 8px;
         }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top">
-        <div class="container-fluid px-3 px-lg-4">
-            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="{{ url_for('index') }}">
-                <i class="bi bi-card-heading fs-4 text-info"></i>
+    <!-- Navbar Glassmorphism (Tanpa Duplikasi Step 1-2-3) -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-glass sticky-top">
+        <div class="container-fluid px-3 px-lg-5">
+            <a class="navbar-brand d-flex align-items-center gap-3" href="{{ url_for('index') }}">
+                <div class="brand-logo-wrap">
+                    <i class="bi bi-person-vcard-fill"></i>
+                </div>
                 <div>
-                    <div class="lh-1">DigiKK-OCR</div>
-                    <small class="fw-normal text-white-50" style="font-size: 0.72rem;">
-                        Mini Project Pemrosesan Citra Digital &bull; Ekstraksi Kartu Keluarga
-                    </small>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="brand-title">DigiKK-OCR</span>
+                        <span class="brand-chip">Computer Vision &bull; SQLite</span>
+                    </div>
+                    <div class="text-white-50" style="font-size: 0.73rem;">
+                        Sistem Ekstraksi Citra &amp; Basis Data Kartu Keluarga Indonesia
+                    </div>
                 </div>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="mainNav">
-                <ul class="navbar-nav ms-auto align-items-lg-center gap-1">
+                <ul class="navbar-nav ms-auto align-items-lg-center gap-2 mt-3 mt-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link px-3 {% if request.endpoint == 'index' %}active fw-semibold bg-white bg-opacity-10 rounded-pill{% endif %}"
+                        <a class="nav-link nav-step-pill {% if request.endpoint in ['index', 'confirm_page'] %}active{% endif %}"
                            href="{{ url_for('index') }}">
-                            <i class="bi bi-cloud-arrow-up me-1"></i> 1. Input Citra KK
+                            <i class="bi bi-cloud-arrow-up-fill"></i>
+                            <span>Input &amp; Ekstraksi KK</span>
                         </a>
                     </li>
-                    {% if request.endpoint == 'confirm_page' %}
                     <li class="nav-item">
-                        <span class="nav-link px-3 active fw-semibold bg-warning text-dark rounded-pill">
-                            <i class="bi bi-pencil-square me-1"></i> 2. Konfirmasi Hasil Baca
-                        </span>
-                    </li>
-                    {% endif %}
-                    <li class="nav-item">
-                        <a class="nav-link px-3 {% if request.endpoint in ['list_kk', 'detail_kk'] %}active fw-semibold bg-white bg-opacity-10 rounded-pill{% endif %}"
+                        <a class="nav-link nav-step-pill {% if request.endpoint in ['list_kk', 'detail_kk'] %}active{% endif %}"
                            href="{{ url_for('list_kk') }}">
-                            <i class="bi bi-table me-1"></i> 3. Penelusuran Tabel KK
+                            <i class="bi bi-database-fill"></i>
+                            <span>Penelusuran Tabel KK</span>
+                            <span class="badge bg-white text-primary rounded-pill fw-bold" style="font-size: 0.7rem;">{{ nav_total_kk }}</span>
                         </a>
                     </li>
                 </ul>
@@ -133,14 +509,15 @@
     </nav>
 
     <!-- Flash Notifications -->
-    <div class="container-fluid px-3 px-lg-4 mt-3">
+    <div class="container-fluid px-3 px-lg-5 mt-3">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm border-0 rounded-3" role="alert">
-                        <i class="bi {% if category == 'success' %}bi-check-circle-fill{% elif category == 'danger' %}bi-exclamation-triangle-fill{% else %}bi-info-circle-fill{% endif %} me-2"></i>
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm border-0 rounded-4 d-flex align-items-center py-3 px-4 mb-2" role="alert"
+                         style="background: #ffffff; border-left: 5px solid {% if category == 'success' %}#10b981{% elif category == 'danger' %}#ef4444{% elif category == 'warning' %}#f59e0b{% else %}#3b82f6{% endif %} !important;">
+                        <i class="bi {% if category == 'success' %}bi-check-circle-fill text-success{% elif category == 'danger' %}bi-exclamation-triangle-fill text-danger{% elif category == 'warning' %}bi-exclamation-circle-fill text-warning{% else %}bi-info-circle-fill text-primary{% endif %} fs-4 me-3"></i>
+                        <div class="small fw-semibold text-dark">{{ message }}</div>
+                        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
                     </div>
                 {% endfor %}
             {% endif %}
@@ -148,34 +525,42 @@
     </div>
 
     <!-- Main Content -->
-    <main class="container-fluid px-3 px-lg-4 py-3 mb-5">
+    <main class="container-fluid px-3 px-lg-5 py-3 mb-5 flex-grow-1">
         {% block content %}{% endblock %}
     </main>
 
     <!-- Modal Zoom Citra Universal -->
     <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered">
-            <div class="modal-content bg-dark text-white border-0">
-                <div class="modal-header border-secondary">
-                    <h6 class="modal-title" id="imagePreviewTitle">Pratinjau Citra</h6>
+            <div class="modal-content bg-dark text-white border-0 rounded-4 overflow-hidden shadow-lg">
+                <div class="modal-header border-secondary py-2 px-4" style="background: #060d1e;">
+                    <h6 class="modal-title fw-bold d-flex align-items-center gap-2" id="imagePreviewTitle">
+                        <i class="bi bi-image text-info"></i> Pratinjau Citra Kartu Keluarga
+                    </h6>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body text-center p-2" style="overflow: auto; max-height: 82vh;">
-                    <img id="imagePreviewTarget" src="" alt="Preview" class="img-fluid rounded">
+                <div class="modal-body text-center p-3" style="overflow: auto; max-height: 85vh; background: #040812;">
+                    <img id="imagePreviewTarget" src="" alt="Preview" class="img-fluid rounded-3 shadow">
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Footer -->
-    <footer class="bg-white border-top py-3 mt-auto">
-        <div class="container-fluid px-3 px-lg-4 d-flex flex-wrap justify-content-between align-items-center text-muted small">
-            <div>
-                <strong>Mini Project Pemrosesan Citra Digital</strong> &mdash; Sistem Pembacaan &amp; Basis Data Kartu Keluarga (KK)
+    <footer class="bg-white border-top py-3 mt-auto shadow-sm">
+        <div class="container-fluid px-3 px-lg-5 d-flex flex-wrap justify-content-between align-items-center gap-2 text-muted small">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary-subtle text-primary rounded-pill px-2 py-1"><i class="bi bi-cpu me-1"></i>PCD</span>
+                <span class="fw-bold text-dark">Mini Project Pemrosesan Citra Digital</span>
+                <span class="d-none d-sm-inline">&mdash; Sistem Pembacaan &amp; Basis Data Kartu Keluarga</span>
             </div>
-            <div class="d-flex gap-2">
-                <span class="badge bg-light text-dark border badge-db"><i class="bi bi-database me-1"></i>tbl_identitasKK</span>
-                <span class="badge bg-light text-dark border badge-db"><i class="bi bi-people me-1"></i>tbl_anggotaKeluargaKK</span>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="badge bg-light text-dark border badge-db">
+                    <i class="bi bi-table text-primary me-1"></i>tbl_identitasKK: <strong>{{ nav_total_kk }}</strong>
+                </span>
+                <span class="badge bg-light text-dark border badge-db">
+                    <i class="bi bi-people-fill text-success me-1"></i>tbl_anggotaKeluargaKK: <strong>{{ nav_total_anggota }}</strong>
+                </span>
             </div>
         </div>
     </footer>
@@ -184,7 +569,7 @@
     <script>
         function showImageModal(src, title) {
             document.getElementById('imagePreviewTarget').src = src;
-            document.getElementById('imagePreviewTitle').innerText = title || 'Pratinjau Citra';
+            document.getElementById('imagePreviewTitle').innerHTML = '<i class="bi bi-image text-info me-2"></i>' + (title || 'Pratinjau Citra');
             const modal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
             modal.show();
         }

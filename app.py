@@ -32,6 +32,16 @@ def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+@app.context_processor
+def inject_global_context():
+    all_kk = db.get_all_kk()
+    total_anggota = sum(int(k.get("jumlah_anggota") or 0) for k in all_kk)
+    return {
+        "nav_total_kk": len(all_kk),
+        "nav_total_anggota": total_anggota,
+    }
+
+
 # ==============================================================================
 # 1. HALAMAN INPUT CITRA KARTU KELUARGA
 # ==============================================================================
@@ -186,12 +196,22 @@ def save_confirmed_kk():
         anggota_list.append(row_dict)
 
     try:
-        db.create_kk_with_anggota(identitas, anggota_list)
+        id_kk = db.create_kk_with_anggota(identitas, anggota_list)
+        job_id = request.form.get("job_id", "").strip()
+        if job_id:
+            job_file = os.path.join(JOBS_DIR, f"{secure_filename(job_id)}.json")
+            if os.path.exists(job_file):
+                try:
+                    os.remove(job_file)
+                except OSError:
+                    pass
         flash(
             f"Data KK No. {identitas['no_kk']} ({identitas['nama_kepala_keluarga']}) "
             f"beserta {len(anggota_list)} anggota keluarga berhasil disimpan ke database!",
             "success",
         )
+        if request.form.get("after_save") == "detail":
+            return redirect(url_for("detail_kk", id_kk=id_kk))
     except Exception as exc:
         flash(f"Gagal menyimpan ke database: {exc}", "danger")
 
