@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+{% block title %}Penelusuran Tabel KK (tbl_identitasKK) - DigiKK-OCR{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-1 text-dark">
+            <i class="bi bi-table text-primary me-2"></i>Penelusuran Tabel Kartu Keluarga (<code class="fs-5">tbl_identitasKK</code>)
+        </h4>
+        <p class="text-muted small mb-0">
+            Menampilkan daftar identitas Kartu Keluarga yang tersimpan di database. Klik <strong>"Lihat Detail &amp; Anggota"</strong> untuk mengelola anggota keluarga pada sebuah KK.
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addManualKKModal">
+            <i class="bi bi-plus-circle me-1"></i> Tambah KK Manual
+        </button>
+        <a href="{{ url_for('index') }}" class="btn btn-primary fw-semibold shadow-sm">
+            <i class="bi bi-cloud-arrow-up me-1"></i> + Input Citra KK Baru
+        </a>
+    </div>
+</div>
+
+<!-- Bar Pencarian Tabel KK -->
+<div class="card card-modern mb-4">
+    <div class="card-body p-3">
+        <form action="{{ url_for('list_kk') }}" method="GET" class="row g-2 align-items-center">
+            <div class="col-md-9">
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search text-primary"></i></span>
+                    <input type="text" name="q" class="form-control"
+                           value="{{ search_query }}"
+                           placeholder="Telusuri berdasarkan Nomor KK, Nama Kepala Keluarga, Alamat, Kelurahan, Kecamatan, atau Kabupaten/Kota...">
+                    {% if search_query %}
+                    <a href="{{ url_for('list_kk') }}" class="btn btn-outline-secondary">Reset</a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100 fw-semibold">
+                    <i class="bi bi-funnel me-1"></i> Cari Data KK
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabel Daftar Identitas KK (tbl_identitasKK) -->
+<div class="card card-modern">
+    <div class="card-header-navy d-flex justify-content-between align-items-center">
+        <div>
+            <span class="fw-bold"><i class="bi bi-card-list me-2"></i>Daftar Kartu Keluarga Tersimpan (<code>tbl_identitasKK</code>)</span>
+        </div>
+        <span class="badge bg-light text-dark">Total: {{ kk_list|length }} Kartu Keluarga</span>
+    </div>
+    <div class="card-body p-0">
+        {% if kk_list %}
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered table-kk mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th class="text-center" style="width: 50px;">No</th>
+                        <th>Nomor KK</th>
+                        <th>Nama Kepala Keluarga</th>
+                        <th>Alamat</th>
+                        <th>RT/RW</th>
+                        <th>Desa / Kelurahan</th>
+                        <th>Kecamatan</th>
+                        <th>Kabupaten / Kota</th>
+                        <th>Provinsi</th>
+                        <th class="text-center">Jml Anggota</th>
+                        <th class="text-center" style="min-width: 265px;">Aksi &amp; Link Detail Anggota</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for kk in kk_list %}
+                    <tr>
+                        <td class="text-center fw-semibold">{{ loop.index }}</td>
+                        <td>
+                            <a href="{{ url_for('detail_kk', id_kk=kk.id_kk) }}" class="fw-bold font-monospace text-decoration-none text-primary">
+                                {{ kk.no_kk }}
+                            </a>
+                        </td>
+                        <td class="fw-bold text-dark">{{ kk.nama_kepala_keluarga }}</td>
+                        <td>{{ kk.alamat or '-' }}</td>
+                        <td class="text-center">{{ kk.rt_rw or '-' }}</td>
+                        <td>{{ kk.desa_kelurahan or '-' }}</td>
+                        <td>{{ kk.kecamatan or '-' }}</td>
+                        <td>{{ kk.kabupaten_kota or '-' }}</td>
+                        <td>{{ kk.provinsi or '-' }}</td>
+                        <td class="text-center">
+                            <a href="{{ url_for('detail_kk', id_kk=kk.id_kk) }}" class="badge bg-primary-subtle text-primary border border-primary-subtle text-decoration-none px-2 py-1">
+                                <i class="bi bi-people-fill me-1"></i>{{ kk.jumlah_anggota }} Orang
+                            </a>
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-1 flex-wrap">
+                                <!-- Link ke Detail Anggota Keluarga pada KK -->
+                                <a href="{{ url_for('detail_kk', id_kk=kk.id_kk) }}" class="btn btn-sm btn-primary fw-semibold" title="Lihat Detail KK & Anggota Keluarga">
+                                    <i class="bi bi-people me-1"></i> Detail Anggota
+                                </a>
+                                <!-- Edit Identitas KK -->
+                                <button type="button" class="btn btn-sm btn-outline-warning text-dark"
+                                        title="Edit Identitas KK"
+                                        data-kk='{{ kk | tojson }}'
+                                        onclick="openEditKKModal(this)">
+                                    <i class="bi bi-pencil-square"></i> Edit
+                                </button>
+                                <!-- Hapus Identitas KK -->
+                                <form action="{{ url_for('delete_kk', id_kk=kk.id_kk) }}" method="POST" class="d-inline"
+                                      onsubmit="return confirm('Yakin ingin menghapus KK No. {{ kk.no_kk }} ({{ kk.nama_kepala_keluarga }}) beserta seluruh anggota keluarganya?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Hapus KK">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 px-3">
+            <i class="bi bi-inbox text-muted" style="font-size: 3.2rem;"></i>
+            <h6 class="fw-bold mt-2">Belum Ada Data Kartu Keluarga</h6>
+            <p class="text-muted small mb-3">
+                {% if search_query %}
+                Tidak ditemukan data KK yang cocok dengan kata kunci pencarian "<strong>{{ search_query }}</strong>".
+                {% else %}
+                Database <code>tbl_identitasKK</code> masih kosong. Silakan unggah citra KK atau gunakan contoh citra KK untuk mengisi database.
+                {% endif %}
+            </p>
+            <a href="{{ url_for('index') }}" class="btn btn-primary btn-sm">
+                <i class="bi bi-cloud-arrow-up me-1"></i> Ke Halaman Input Citra KK
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- MODAL EDIT IDENTITAS KK (Update tbl_identitasKK) -->
+<div class="modal fade" id="editKKModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form id="editKKForm" method="POST">
+                <input type="hidden" name="redirect_to" value="list">
+                <div class="modal-header card-header-navy">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>Edit Data Identitas KK (<code>tbl_identitasKK</code>)</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small">Nomor Kartu Keluarga (16 Digit) *</label>
+                            <input type="text" name="no_kk" id="edit_no_kk" class="form-control font-monospace fw-bold" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small">Nama Kepala Keluarga *</label>
+                            <input type="text" name="nama_kepala_keluarga" id="edit_nama_kepala" class="form-control fw-semibold" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Alamat</label>
+                            <input type="text" name="alamat" id="edit_alamat" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold small">RT/RW</label>
+                            <input type="text" name="rt_rw" id="edit_rt_rw" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold small">Kode Pos</label>
+                            <input type="text" name="kode_pos" id="edit_kode_pos" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold small">Desa / Kelurahan</label>
+                            <input type="text" name="desa_kelurahan" id="edit_desa" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold small">Kecamatan</label>
+                            <input type="text" name="kecamatan" id="edit_kecamatan" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold small">Kabupaten / Kota</label>
+                            <input type="text" name="kabupaten_kota" id="edit_kabupaten" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold small">Provinsi</label>
+                            <input type="text" name="provinsi" id="edit_provinsi" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small">Tanggal Dikeluarkan</label>
+                            <input type="text" name="tanggal_dikeluarkan" id="edit_tgl_keluar" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary fw-bold">
+                        <i class="bi bi-save me-1"></i> Simpan Perubahan Identitas KK
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL TAMBAH IDENTITAS KK MANUAL -->
+<div class="modal fade" id="addManualKKModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form action="{{ url_for('create_kk_manual') }}" method="POST">
+                <div class="modal-header card-header-navy">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle me-2"></i>Tambah Identitas KK Baru (<code>tbl_identitasKK</code>)</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small">Nomor Kartu Keluarga (16 Digit) *</label>
+                            <input type="text" name="no_kk" class="form-control font-monospace fw-bold" required placeholder="Contoh: 3271041508200099">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small">Nama Kepala Keluarga *</label>
+                            <input type="text" name="nama_kepala_keluarga" class="form-control fw-semibold" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Alamat</label>
+                            <input type="text" name="alamat" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold small">RT/RW</label>
+                            <input type="text" name="rt_rw" class="form-control" placeholder="001/002">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold small">Kode Pos</label>
+                            <input type="text" name="kode_pos" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold small">Desa / Kelurahan</label>
+                            <input type="text" name="desa_kelurahan" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold small">Kecamatan</label>
+                            <input type="text" name="kecamatan" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold small">Kabupaten / Kota</label>
+                            <input type="text" name="kabupaten_kota" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold small">Provinsi</label>
+                            <input type="text" name="provinsi" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small">Tanggal Dikeluarkan</label>
+                            <input type="text" name="tanggal_dikeluarkan" class="form-control" placeholder="DD-MM-YYYY">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary fw-bold">
+                        <i class="bi bi-check2-circle me-1"></i> Simpan &amp; Lanjut Isi Anggota
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function openEditKKModal(btn) {
+        const kk = JSON.parse(btn.getAttribute('data-kk'));
+        document.getElementById('editKKForm').action = '/kk/' + kk.id_kk + '/update';
+        document.getElementById('edit_no_kk').value = kk.no_kk || '';
+        document.getElementById('edit_nama_kepala').value = kk.nama_kepala_keluarga || '';
+        document.getElementById('edit_alamat').value = kk.alamat || '';
+        document.getElementById('edit_rt_rw').value = kk.rt_rw || '';
+        document.getElementById('edit_kode_pos').value = kk.kode_pos || '';
+        document.getElementById('edit_desa').value = kk.desa_kelurahan || '';
+        document.getElementById('edit_kecamatan').value = kk.kecamatan || '';
+        document.getElementById('edit_kabupaten').value = kk.kabupaten_kota || '';
+        document.getElementById('edit_provinsi').value = kk.provinsi || '';
+        document.getElementById('edit_tgl_keluar').value = kk.tanggal_dikeluarkan || '';
+        const modal = new bootstrap.Modal(document.getElementById('editKKModal'));
+        modal.show();
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistem Ekstraksi Citra Kartu Keluarga (KK) - PCD{% endblock %}</title>
+    <!-- Bootstrap 5.3 CSS & Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-navy: #0f2942;
+            --accent-blue: #1d63b8;
+            --soft-bg: #f4f7fb;
+        }
+        body {
+            background-color: var(--soft-bg);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: #1e293b;
+        }
+        .navbar-custom {
+            background: linear-gradient(135deg, #0f2942 0%, #1d4ed8 100%);
+            box-shadow: 0 3px 14px rgba(15, 41, 66, 0.18);
+        }
+        .card-modern {
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            border-radius: 14px;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+            background: #ffffff;
+        }
+        .card-header-navy {
+            background: linear-gradient(135deg, #0f2942 0%, #1e40af 100%);
+            color: #ffffff;
+            border-top-left-radius: 13px !important;
+            border-top-right-radius: 13px !important;
+            padding: 0.9rem 1.25rem;
+        }
+        .step-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.4rem 0.9rem;
+            border-radius: 50rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+        .table-kk th {
+            background-color: #1e3a8a;
+            color: #ffffff;
+            font-size: 0.82rem;
+            font-weight: 600;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+        .table-kk td {
+            font-size: 0.85rem;
+            vertical-align: middle;
+        }
+        .form-control-sm-kk {
+            font-size: 0.82rem;
+            padding: 0.3rem 0.48rem;
+            min-width: 115px;
+        }
+        .stage-thumb {
+            cursor: pointer;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+        }
+        .stage-thumb:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(29, 78, 216, 0.18);
+            border-color: #2563eb;
+        }
+        .upload-dropzone {
+            border: 2px dashed #93c5fd;
+            border-radius: 14px;
+            background: #f8fafc;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .upload-dropzone:hover, .upload-dropzone.dragover {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+        .badge-db {
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.78rem;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top">
+        <div class="container-fluid px-3 px-lg-4">
+            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="{{ url_for('index') }}">
+                <i class="bi bi-card-heading fs-4 text-info"></i>
+                <div>
+                    <div class="lh-1">DigiKK-OCR</div>
+                    <small class="fw-normal text-white-50" style="font-size: 0.72rem;">
+                        Mini Project Pemrosesan Citra Digital &bull; Ekstraksi Kartu Keluarga
+                    </small>
+                </div>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="mainNav">
+                <ul class="navbar-nav ms-auto align-items-lg-center gap-1">
+                    <li class="nav-item">
+                        <a class="nav-link px-3 {% if request.endpoint == 'index' %}active fw-semibold bg-white bg-opacity-10 rounded-pill{% endif %}"
+                           href="{{ url_for('index') }}">
+                            <i class="bi bi-cloud-arrow-up me-1"></i> 1. Input Citra KK
+                        </a>
+                    </li>
+                    {% if request.endpoint == 'confirm_page' %}
+                    <li class="nav-item">
+                        <span class="nav-link px-3 active fw-semibold bg-warning text-dark rounded-pill">
+                            <i class="bi bi-pencil-square me-1"></i> 2. Konfirmasi Hasil Baca
+                        </span>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link px-3 {% if request.endpoint in ['list_kk', 'detail_kk'] %}active fw-semibold bg-white bg-opacity-10 rounded-pill{% endif %}"
+                           href="{{ url_for('list_kk') }}">
+                            <i class="bi bi-table me-1"></i> 3. Penelusuran Tabel KK
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Notifications -->
+    <div class="container-fluid px-3 px-lg-4 mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm border-0 rounded-3" role="alert">
+                        <i class="bi {% if category == 'success' %}bi-check-circle-fill{% elif category == 'danger' %}bi-exclamation-triangle-fill{% else %}bi-info-circle-fill{% endif %} me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <main class="container-fluid px-3 px-lg-4 py-3 mb-5">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Modal Zoom Citra Universal -->
+    <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border-0">
+                <div class="modal-header border-secondary">
+                    <h6 class="modal-title" id="imagePreviewTitle">Pratinjau Citra</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center p-2" style="overflow: auto; max-height: 82vh;">
+                    <img id="imagePreviewTarget" src="" alt="Preview" class="img-fluid rounded">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-top py-3 mt-auto">
+        <div class="container-fluid px-3 px-lg-4 d-flex flex-wrap justify-content-between align-items-center text-muted small">
+            <div>
+                <strong>Mini Project Pemrosesan Citra Digital</strong> &mdash; Sistem Pembacaan &amp; Basis Data Kartu Keluarga (KK)
+            </div>
+            <div class="d-flex gap-2">
+                <span class="badge bg-light text-dark border badge-db"><i class="bi bi-database me-1"></i>tbl_identitasKK</span>
+                <span class="badge bg-light text-dark border badge-db"><i class="bi bi-people me-1"></i>tbl_anggotaKeluargaKK</span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showImageModal(src, title) {
+            document.getElementById('imagePreviewTarget').src = src;
+            document.getElementById('imagePreviewTitle').innerText = title || 'Pratinjau Citra';
+            const modal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
+            modal.show();
+        }
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

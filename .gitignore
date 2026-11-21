@@ -1,0 +1,27 @@
+# Database & file pribadi
+*.db
+*.sqlite
+*.sqlite3
+kk_database.db
+requirements.txt
+
+# Data unggahan, hasil proses sementara, & sampel lokal
+static/uploads/
+static/processed/
+static/jobs/
+static/samples/
+
+# Python cache & virtual environment
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv/
+venv/
+ENV/
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
