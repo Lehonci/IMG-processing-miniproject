@@ -72,7 +72,7 @@
                     </div>
                     <div>
                         <div class="text-muted" style="font-size: 0.72rem; font-weight: 600;">ANGGOTA</div>
-                        <div class="fw-extrabold text-dark fs-5" style="font-weight: 800;">{{ nav_total_anggota }} Jiwa</div>
+                        <div class="fw-extrabold text-dark fs-5" style="font-weight: 800;">{{ filtered_total_anggota }} Jiwa</div>
                     </div>
                 </div>
             </div>
@@ -80,7 +80,7 @@
     </div>
     <div class="col-lg-8">
         <div class="card card-modern h-100 d-flex justify-content-center">
-            <div class="card-body p-3 d-flex align-items-center">
+            <div class="card-body p-3">
                 <form action="{{ url_for('list_kk') }}" method="GET" class="row g-2 align-items-center w-100 m-0">
                     <div class="col-md-9">
                         <div class="input-group">
@@ -89,8 +89,8 @@
                             </span>
                             <input type="text" name="q" class="form-control border-start-0"
                                    value="{{ search_query }}"
-                                   placeholder="Cari Nomor KK, Nama Kepala Keluarga, Alamat, Kelurahan, Kecamatan, atau Kota...">
-                            {% if search_query %}
+                                   placeholder="Cari No. KK, Kepala Keluarga, Nama/NIK Anggota, Alamat, atau Wilayah...">
+                            {% if search_query or selected_provinsi or selected_kabupaten %}
                             <a href="{{ url_for('list_kk') }}" class="btn btn-light border">
                                 <i class="bi bi-x-lg me-1"></i>Reset
                             </a>
@@ -101,6 +101,22 @@
                         <button type="submit" class="btn btn-brand-gradient w-100 fw-bold rounded-pill py-2">
                             <i class="bi bi-funnel-fill me-1"></i> Cari Data KK
                         </button>
+                    </div>
+                    <div class="col-sm-6">
+                        <select name="provinsi" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="">Semua Provinsi</option>
+                            {% for prov in filter_options.provinsi %}
+                            <option value="{{ prov }}" {% if selected_provinsi|upper == prov|upper %}selected{% endif %}>{{ prov }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-sm-6">
+                        <select name="kabupaten_kota" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="">Semua Kabupaten / Kota</option>
+                            {% for kab in filter_options.kabupaten_kota %}
+                            <option value="{{ kab }}" {% if selected_kabupaten|upper == kab|upper %}selected{% endif %}>{{ kab }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                 </form>
             </div>
@@ -120,9 +136,21 @@
                 <small class="text-white-50">Klik tombol "Lihat Detail &amp; Anggota" untuk melihat rincian anggota keluarga</small>
             </div>
         </div>
-        <span class="badge bg-white text-dark fw-bold rounded-pill px-3 py-2">
-            Total: {{ kk_list|length }} Kartu Keluarga
-        </span>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <a href="{{ url_for('export_kk_list', scope='identitas', q=search_query, provinsi=selected_provinsi, kabupaten_kota=selected_kabupaten) }}"
+               class="btn btn-sm btn-outline-light fw-semibold rounded-pill px-3"
+               title="Unduh daftar KK sesuai pencarian/filter dalam format CSV (Excel)">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Ekspor CSV KK
+            </a>
+            <a href="{{ url_for('export_kk_list', scope='lengkap', q=search_query, provinsi=selected_provinsi, kabupaten_kota=selected_kabupaten) }}"
+               class="btn btn-sm btn-light text-primary fw-semibold rounded-pill px-3"
+               title="Unduh seluruh data KK beserta anggota keluarganya dalam format CSV">
+                <i class="bi bi-download me-1"></i> CSV + Anggota
+            </a>
+            <span class="badge bg-white text-dark fw-bold rounded-pill px-3 py-2">
+                Total: {{ kk_list|length }} Kartu Keluarga
+            </span>
+        </div>
     </div>
     <div class="card-body p-0">
         {% if kk_list %}
@@ -221,15 +249,15 @@
             </div>
             <h5 class="fw-bold text-dark">Belum Ada Data Kartu Keluarga</h5>
             <p class="text-muted small mb-4 mx-auto" style="max-width: 480px;">
-                {% if search_query %}
-                Tidak ditemukan data KK yang cocok dengan kata kunci pencarian "<strong>{{ search_query }}</strong>".
+                {% if search_query or selected_provinsi or selected_kabupaten %}
+                Tidak ditemukan data KK yang cocok dengan pencarian atau filter wilayah yang dipilih.
                 {% else %}
                 Database <code>tbl_identitasKK</code> masih kosong. Silakan unggah citra Kartu Keluarga atau gunakan contoh KK pada halaman input untuk mengisi database.
                 {% endif %}
             </p>
-            {% if search_query %}
+            {% if search_query or selected_provinsi or selected_kabupaten %}
             <a href="{{ url_for('list_kk') }}" class="btn btn-outline-secondary rounded-pill px-4">
-                Reset Pencarian
+                Reset Pencarian &amp; Filter
             </a>
             {% endif %}
         </div>

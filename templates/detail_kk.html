@@ -29,14 +29,57 @@
         font-weight: 700;
         color: #0f172a;
     }
+    .print-doc-header {
+        display: none;
+    }
+    @media print {
+        @page {
+            size: A4 landscape;
+            margin: 10mm;
+        }
+        .hero-banner,
+        .no-print {
+            display: none !important;
+        }
+        .print-doc-header {
+            display: block !important;
+            text-align: center;
+            border-bottom: 2px solid #0f2347;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+        .identitas-grid-item {
+            padding: 0.4rem 0.6rem !important;
+            border-radius: 6px !important;
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+        }
+        .identitas-label {
+            font-size: 6.8pt !important;
+        }
+        .identitas-value {
+            font-size: 8.5pt !important;
+        }
+        .print-full-width {
+            flex: 0 0 100% !important;
+            max-width: 100% !important;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
+<!-- Header Khusus Cetak (Hanya Tampil Saat Print / Save as PDF) -->
+<div class="print-doc-header">
+    <h4 class="fw-bold mb-0" style="letter-spacing: 0.08em;">KARTU KELUARGA</h4>
+    <div class="font-monospace fw-bold">No. {{ kk.no_kk }}</div>
+    <div class="small text-muted">Dicetak dari Sistem DigiKK-OCR &bull; Tanggal Dikeluarkan: {{ kk.tanggal_dikeluarkan or '-' }}</div>
+</div>
+
 <!-- Hero Banner Detail Kartu Keluarga -->
 <div class="hero-banner mb-4">
     <div class="row align-items-center g-4 position-relative" style="z-index: 2;">
-        <div class="col-lg-7">
+        <div class="col-lg-6">
             <div class="hero-kicker mb-2">
                 <i class="bi bi-person-vcard-fill text-info"></i>
                 <span>Dokumen Kartu Keluarga &bull; ID #{{ kk.id_kk }}</span>
@@ -49,13 +92,19 @@
                 {{ kk.desa_kelurahan or '-' }}, {{ kk.kecamatan or '-' }}, {{ kk.kabupaten_kota or '-' }} ({{ anggota_list|length }} Anggota)
             </p>
         </div>
-        <div class="col-lg-5 text-lg-end">
+        <div class="col-lg-6 text-lg-end">
             <div class="d-inline-flex flex-wrap gap-2 justify-content-lg-end">
                 <a href="{{ url_for('list_kk') }}" class="btn btn-outline-light fw-semibold rounded-pill px-3 py-2">
-                    <i class="bi bi-arrow-left me-1"></i> Kembali ke Tabel KK
+                    <i class="bi bi-arrow-left me-1"></i> Kembali
                 </a>
+                <a href="{{ url_for('export_single_kk', id_kk=kk.id_kk) }}" class="btn btn-light text-primary fw-bold rounded-pill px-3 py-2" title="Unduh data KK beserta anggota keluarga ke file CSV (Excel)">
+                    <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i> Ekspor CSV
+                </a>
+                <button type="button" class="btn btn-info text-dark fw-bold rounded-pill px-3 py-2" onclick="window.print()" title="Cetak atau simpan halaman KK ini sebagai PDF">
+                    <i class="bi bi-printer-fill me-1"></i> Cetak KK
+                </button>
                 <button type="button" class="btn btn-warning fw-bold text-dark rounded-pill px-3 py-2" data-bs-toggle="modal" data-bs-target="#editIdentitasModal">
-                    <i class="bi bi-pencil-square me-1"></i> Edit Identitas KK
+                    <i class="bi bi-pencil-square me-1"></i> Edit KK
                 </button>
                 <form action="{{ url_for('delete_kk', id_kk=kk.id_kk) }}" method="POST" class="d-inline"
                       onsubmit="return confirm('Yakin ingin menghapus seluruh data KK No. {{ kk.no_kk }} ({{ kk.nama_kepala_keluarga }}) beserta semua anggota keluarganya?');">
@@ -113,7 +162,7 @@
     </div>
     <div class="card-body p-4">
         <div class="row g-4 align-items-center">
-            <div class="col-lg-{{ '9' if kk.image_path else '12' }}">
+            <div class="col-lg-{{ '9' if kk.image_path else '12' }} print-full-width">
                 <div class="row g-3">
                     <div class="col-md-4 col-sm-6">
                         <div class="identitas-grid-item">
@@ -178,7 +227,7 @@
                 </div>
             </div>
             {% if kk.image_path %}
-            <div class="col-lg-3 text-center">
+            <div class="col-lg-3 text-center no-print">
                 <div class="p-3 rounded-4 border" style="background: #0f172a;">
                     <img src="{{ url_for('static', filename=kk.image_path) }}"
                          alt="Citra KK"
@@ -209,7 +258,7 @@
                 <small class="text-white-50">Total {{ anggota_list|length }} anggota keluarga terdaftar pada KK No. {{ kk.no_kk }} (Read, Create, Update, Delete)</small>
             </div>
         </div>
-        <button type="button" class="btn btn-warning btn-sm fw-bold rounded-pill px-3 py-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#addAnggotaModal">
+        <button type="button" class="btn btn-warning btn-sm fw-bold rounded-pill px-3 py-2 shadow-sm no-print" data-bs-toggle="modal" data-bs-target="#addAnggotaModal">
             <i class="bi bi-person-plus-fill me-1"></i> + Tambah Anggota Keluarga
         </button>
     </div>
@@ -282,7 +331,7 @@
                         <th>(15) No. KITAP</th>
                         <th>(16) Nama Ayah</th>
                         <th>(17) Nama Ibu</th>
-                        <th class="text-center" style="width: 145px;">Aksi (Edit/Hapus)</th>
+                        <th class="text-center no-print" style="width: 145px;">Aksi (Edit/Hapus)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -302,7 +351,7 @@
                         <td class="font-monospace">{{ a.no_kitap or '-' }}</td>
                         <td>{{ a.nama_ayah or '-' }}</td>
                         <td>{{ a.nama_ibu or '-' }}</td>
-                        <td class="text-center">
+                        <td class="text-center no-print">
                             <div class="d-flex justify-content-center gap-1">
                                 <button type="button" class="btn btn-sm btn-warning fw-semibold text-dark py-0 px-2 rounded-pill"
                                         data-anggota='{{ a | tojson }}'

@@ -462,6 +462,61 @@
             padding: 0.4rem 0.75rem;
             border-radius: 8px;
         }
+
+        /* ================= PRINT MODE (CETAK KK) ================= */
+        @media print {
+            body {
+                background: #ffffff !important;
+                background-image: none !important;
+                color: #000000 !important;
+                font-size: 10pt;
+            }
+            .navbar-glass,
+            .stepper-shell,
+            footer,
+            .alert,
+            .modal,
+            .no-print {
+                display: none !important;
+            }
+            main.container-fluid {
+                padding: 0 !important;
+                margin: 0 !important;
+                max-width: 100% !important;
+            }
+            .card-modern {
+                box-shadow: none !important;
+                border: 1px solid #94a3b8 !important;
+                border-radius: 6px !important;
+                margin-bottom: 12px !important;
+                overflow: visible !important;
+            }
+            .card-header-navy {
+                background: #0f2347 !important;
+                color: #ffffff !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                padding: 0.55rem 0.9rem !important;
+            }
+            .table-responsive {
+                overflow: visible !important;
+                box-shadow: none !important;
+            }
+            .table-kk thead th {
+                background: #0f2347 !important;
+                color: #ffffff !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                font-size: 7.5pt !important;
+                padding: 0.35rem 0.4rem !important;
+                white-space: normal !important;
+            }
+            .table-kk tbody td {
+                font-size: 7.8pt !important;
+                padding: 0.32rem 0.4rem !important;
+                border-color: #94a3b8 !important;
+            }
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>

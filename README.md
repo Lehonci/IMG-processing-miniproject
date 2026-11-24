@@ -30,11 +30,12 @@ Database SQLite (`kk_database.db`) dibuat otomatis saat aplikasi pertama kali di
 2. **Halaman Konfirmasi Hasil Pembacaan (`/confirm/<job_id>`)**:
    - Menampilkan pratinjau citra KK yang diunggah beserta **Form Editable** untuk mengoreksi hasil bacaan `tbl_identitasKK` dan seluruh baris/kolom `tbl_anggotaKeluargaKK` sebelum disimpan ke database.
 3. **Halaman Penelusuran Tabel KK Saja (`/kk`)**:
-   - Menampilkan khusus daftar data dari `tbl_identitasKK` dengan fitur pencarian.
+   - Menampilkan khusus daftar data dari `tbl_identitasKK` dengan fitur pencarian (No. KK, Nama Kepala Keluarga, Alamat, Wilayah, maupun **Nama/NIK Anggota Keluarga**) serta filter **Provinsi** dan **Kabupaten/Kota**.
+   - Dilengkapi tombol **Ekspor CSV** (daftar KK saja atau lengkap bersama anggota keluarga, kompatibel langsung dengan Microsoft Excel).
    - Setiap baris memiliki link **"Detail Anggota"** menuju halaman detail anggota keluarga pada KK tersebut, serta aksi **Update (Edit)** dan **Delete (Hapus)** data identitas KK.
 4. **Halaman Detail KK & Anggota Keluarga (`/kk/<id_kk>`)**:
    - Menampilkan detail `tbl_identitasKK` dan tabel lengkap `tbl_anggotaKeluargaKK` (Kolom 1–17).
-   - Mendukung operasi **Create, Read, Update, Delete (CRUD)** penuh terhadap data identitas KK maupun setiap anggota keluarga pada KK tersebut.
+   - Mendukung operasi **Create, Read, Update, Delete (CRUD)** penuh terhadap data identitas KK maupun setiap anggota keluarga pada KK tersebut, serta tombol **Ekspor CSV** dan **Cetak KK (Print View)**.
 
 ---
 

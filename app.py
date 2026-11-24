@@ -1,10 +1,12 @@
+import csv
+import io
 import json
 import os
 import shutil
 import uuid
 from typing import Any, Dict, List
 
-from flask import Flask, flash, redirect, render_template, request, url_for
+from flask import Flask, Response, flash, redirect, render_template, request, url_for
 from werkzeug.utils import secure_filename
 
 import database as db
@@ -222,11 +224,253 @@ def save_confirmed_kk():
 # 3. HALAMAN PENELUSURAN TABEL KK SAJA (tbl_identitasKK)
 # ==============================================================================
 
+def _csv_safe_value(value: Any, force_text_digits: bool = False) -> str:
+    """Menyiapkan nilai sel CSV yang aman terhadap formula injection dan menjaga angka 16 digit (No. KK/NIK) di Excel."""
+    text = "" if value is None else str(value).strip()
+    if not text:
+        return ""
+    if force_text_digits and text.isdigit() and len(text) >= 11:
+        return f'="{text}"'
+    if text != "-" and text[0] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + text
+    return text
+
+
+def _build_csv_response(rows: List[List[Any]], filename: str) -> Response:
+    """Membangun response download CSV dengan UTF-8 BOM agar langsung rapi saat dibuka di Microsoft Excel."""
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerows(rows)
+    csv_bytes = buffer.getvalue().encode("utf-8-sig")
+    return Response(
+        csv_bytes,
+        mimetype="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @app.route("/kk", methods=["GET"])
 def list_kk():
     search_query = request.args.get("q", "").strip()
-    kk_list = db.get_all_kk(search_query=search_query)
-    return render_template("list_kk.html", kk_list=kk_list, search_query=search_query)
+    selected_provinsi = request.args.get("provinsi", "").strip()
+    selected_kabupaten = request.args.get("kabupaten_kota", "").strip()
+    kk_list = db.get_all_kk(
+        search_query=search_query,
+        provinsi=selected_provinsi,
+        kabupaten_kota=selected_kabupaten,
+    )
+    filter_options = db.get_kk_filter_options()
+    filtered_total_anggota = sum(int(k.get("jumlah_anggota") or 0) for k in kk_list)
+    return render_template(
+        "list_kk.html",
+        kk_list=kk_list,
+        search_query=search_query,
+        selected_provinsi=selected_provinsi,
+        selected_kabupaten=selected_kabupaten,
+        filter_options=filter_options,
+        filtered_total_anggota=filtered_total_anggota,
+    )
+
+
+@app.route("/kk/export", methods=["GET"])
+def export_kk_list():
+    """Mengekspor daftar KK (atau KK beserta seluruh anggota keluarganya) sesuai filter aktif ke CSV."""
+    search_query = request.args.get("q", "").strip()
+    selected_provinsi = request.args.get("provinsi", "").strip()
+    selected_kabupaten = request.args.get("kabupaten_kota", "").strip()
+    scope = (request.args.get("scope") or "identitas").strip().lower()
+
+    if scope == "lengkap":
+        kk_list = db.get_all_kk_with_anggota(
+            search_query=search_query,
+            provinsi=selected_provinsi,
+            kabupaten_kota=selected_kabupaten,
+        )
+        rows: List[List[Any]] = [
+            [
+                "No. KK",
+                "Nama Kepala Keluarga",
+                "Alamat",
+                "RT/RW",
+                "Kode Pos",
+                "Desa/Kelurahan",
+                "Kecamatan",
+                "Kabupaten/Kota",
+                "Provinsi",
+                "Tanggal Dikeluarkan",
+                "No. Urut",
+                "Nama Lengkap Anggota",
+                "NIK",
+                "Jenis Kelamin",
+                "Tempat Lahir",
+                "Tanggal Lahir",
+                "Agama",
+                "Pendidikan",
+                "Jenis Pekerjaan",
+                "Gol. Darah",
+                "Status Perkawinan",
+                "Tanggal Perkawinan",
+                "Status Hubungan",
+                "Kewarganegaraan",
+                "No. Paspor",
+                "No. KITAP",
+                "Nama Ayah",
+                "Nama Ibu",
+            ]
+        ]
+        for kk in kk_list:
+            ident_cols = [
+                _csv_safe_value(kk.get("no_kk"), force_text_digits=True),
+                _csv_safe_value(kk.get("nama_kepala_keluarga")),
+                _csv_safe_value(kk.get("alamat")),
+                _csv_safe_value(kk.get("rt_rw")),
+                _csv_safe_value(kk.get("kode_pos")),
+                _csv_safe_value(kk.get("desa_kelurahan")),
+                _csv_safe_value(kk.get("kecamatan")),
+                _csv_safe_value(kk.get("kabupaten_kota")),
+                _csv_safe_value(kk.get("provinsi")),
+                _csv_safe_value(kk.get("tanggal_dikeluarkan")),
+            ]
+            anggota = kk.get("anggota") or []
+            if not anggota:
+                rows.append(ident_cols + [""] * 18)
+            else:
+                for a in anggota:
+                    rows.append(
+                        ident_cols
+                        + [
+                            a.get("no_urut", ""),
+                            _csv_safe_value(a.get("nama_lengkap")),
+                            _csv_safe_value(a.get("nik"), force_text_digits=True),
+                            _csv_safe_value(a.get("jenis_kelamin")),
+                            _csv_safe_value(a.get("tempat_lahir")),
+                            _csv_safe_value(a.get("tanggal_lahir")),
+                            _csv_safe_value(a.get("agama")),
+                            _csv_safe_value(a.get("pendidikan")),
+                            _csv_safe_value(a.get("jenis_pekerjaan")),
+                            _csv_safe_value(a.get("golongan_darah")),
+                            _csv_safe_value(a.get("status_perkawinan")),
+                            _csv_safe_value(a.get("tanggal_perkawinan")),
+                            _csv_safe_value(a.get("status_hubungan")),
+                            _csv_safe_value(a.get("kewarganegaraan")),
+                            _csv_safe_value(a.get("no_paspor")),
+                            _csv_safe_value(a.get("no_kitap")),
+                            _csv_safe_value(a.get("nama_ayah")),
+                            _csv_safe_value(a.get("nama_ibu")),
+                        ]
+                    )
+        return _build_csv_response(rows, "data_kk_lengkap.csv")
+
+    kk_list = db.get_all_kk(
+        search_query=search_query,
+        provinsi=selected_provinsi,
+        kabupaten_kota=selected_kabupaten,
+    )
+    rows = [
+        [
+            "No",
+            "No. KK",
+            "Nama Kepala Keluarga",
+            "Alamat",
+            "RT/RW",
+            "Kode Pos",
+            "Desa/Kelurahan",
+            "Kecamatan",
+            "Kabupaten/Kota",
+            "Provinsi",
+            "Tanggal Dikeluarkan",
+            "Jumlah Anggota",
+        ]
+    ]
+    for idx, kk in enumerate(kk_list, start=1):
+        rows.append(
+            [
+                idx,
+                _csv_safe_value(kk.get("no_kk"), force_text_digits=True),
+                _csv_safe_value(kk.get("nama_kepala_keluarga")),
+                _csv_safe_value(kk.get("alamat")),
+                _csv_safe_value(kk.get("rt_rw")),
+                _csv_safe_value(kk.get("kode_pos")),
+                _csv_safe_value(kk.get("desa_kelurahan")),
+                _csv_safe_value(kk.get("kecamatan")),
+                _csv_safe_value(kk.get("kabupaten_kota")),
+                _csv_safe_value(kk.get("provinsi")),
+                _csv_safe_value(kk.get("tanggal_dikeluarkan")),
+                int(kk.get("jumlah_anggota") or 0),
+            ]
+        )
+    return _build_csv_response(rows, "daftar_kk.csv")
+
+
+@app.route("/kk/<int:id_kk>/export", methods=["GET"])
+def export_single_kk(id_kk: int):
+    """Mengekspor detail satu Kartu Keluarga beserta seluruh anggota keluarganya (Kolom 1-17) ke CSV."""
+    kk = db.get_kk_by_id(id_kk)
+    if not kk:
+        flash("Data Kartu Keluarga tidak ditemukan.", "warning")
+        return redirect(url_for("list_kk"))
+
+    anggota_list = db.get_anggota_by_kk(id_kk)
+    rows: List[List[Any]] = [
+        ["KARTU KELUARGA", ""],
+        ["No. KK", _csv_safe_value(kk.get("no_kk"), force_text_digits=True)],
+        ["Nama Kepala Keluarga", _csv_safe_value(kk.get("nama_kepala_keluarga"))],
+        ["Alamat", _csv_safe_value(kk.get("alamat"))],
+        ["RT/RW", _csv_safe_value(kk.get("rt_rw"))],
+        ["Kode Pos", _csv_safe_value(kk.get("kode_pos"))],
+        ["Desa/Kelurahan", _csv_safe_value(kk.get("desa_kelurahan"))],
+        ["Kecamatan", _csv_safe_value(kk.get("kecamatan"))],
+        ["Kabupaten/Kota", _csv_safe_value(kk.get("kabupaten_kota"))],
+        ["Provinsi", _csv_safe_value(kk.get("provinsi"))],
+        ["Tanggal Dikeluarkan", _csv_safe_value(kk.get("tanggal_dikeluarkan"))],
+        [],
+        [
+            "No",
+            "Nama Lengkap",
+            "NIK",
+            "Jenis Kelamin",
+            "Tempat Lahir",
+            "Tanggal Lahir",
+            "Agama",
+            "Pendidikan",
+            "Jenis Pekerjaan",
+            "Gol. Darah",
+            "Status Perkawinan",
+            "Tanggal Perkawinan",
+            "Status Hubungan",
+            "Kewarganegaraan",
+            "No. Paspor",
+            "No. KITAP",
+            "Nama Ayah",
+            "Nama Ibu",
+        ],
+    ]
+    for a in anggota_list:
+        rows.append(
+            [
+                a.get("no_urut", ""),
+                _csv_safe_value(a.get("nama_lengkap")),
+                _csv_safe_value(a.get("nik"), force_text_digits=True),
+                _csv_safe_value(a.get("jenis_kelamin")),
+                _csv_safe_value(a.get("tempat_lahir")),
+                _csv_safe_value(a.get("tanggal_lahir")),
+                _csv_safe_value(a.get("agama")),
+                _csv_safe_value(a.get("pendidikan")),
+                _csv_safe_value(a.get("jenis_pekerjaan")),
+                _csv_safe_value(a.get("golongan_darah")),
+                _csv_safe_value(a.get("status_perkawinan")),
+                _csv_safe_value(a.get("tanggal_perkawinan")),
+                _csv_safe_value(a.get("status_hubungan")),
+                _csv_safe_value(a.get("kewarganegaraan")),
+                _csv_safe_value(a.get("no_paspor")),
+                _csv_safe_value(a.get("no_kitap")),
+                _csv_safe_value(a.get("nama_ayah")),
+                _csv_safe_value(a.get("nama_ibu")),
+            ]
+        )
+
+    safe_no_kk = secure_filename(kk.get("no_kk") or str(id_kk)) or str(id_kk)
+    return _build_csv_response(rows, f"kk_{safe_no_kk}.csv")
 
 
 @app.route("/kk/create-manual", methods=["POST"])

@@ -206,10 +206,16 @@ def create_kk_with_anggota(
         conn.close()
 
 
-def get_all_kk(search_query: str = "") -> List[Dict[str, Any]]:
+def get_all_kk(
+    search_query: str = "",
+    provinsi: str = "",
+    kabupaten_kota: str = "",
+) -> List[Dict[str, Any]]:
     """
     Mengambil seluruh daftar KK dari tbl_identitasKK beserta jumlah anggota keluarganya.
-    Mendukung pencarian berdasarkan No KK, Nama Kepala Keluarga, Alamat, Kelurahan, Kecamatan, atau Kota.
+    Mendukung pencarian berdasarkan No KK, Nama Kepala Keluarga, Alamat, Wilayah,
+    serta Nama Lengkap atau NIK anggota keluarga pada tbl_anggotaKeluargaKK,
+    dan filter berdasarkan Provinsi serta Kabupaten/Kota.
     """
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -221,25 +227,109 @@ def get_all_kk(search_query: str = "") -> List[Dict[str, Any]]:
         FROM tbl_identitasKK k
         LEFT JOIN tbl_anggotaKeluargaKK a ON k.id_kk = a.id_kk
     """
+    conditions: List[str] = []
     params: List[Any] = []
+
     if search_query and search_query.strip():
         q = f"%{search_query.strip()}%"
-        base_sql += """
-            WHERE k.no_kk LIKE ?
-               OR k.nama_kepala_keluarga LIKE ?
-               OR k.alamat LIKE ?
-               OR k.desa_kelurahan LIKE ?
-               OR k.kecamatan LIKE ?
-               OR k.kabupaten_kota LIKE ?
-               OR k.provinsi LIKE ?
-        """
-        params.extend([q, q, q, q, q, q, q])
+        conditions.append(
+            """
+            (
+                k.no_kk LIKE ?
+                OR k.nama_kepala_keluarga LIKE ?
+                OR k.alamat LIKE ?
+                OR k.desa_kelurahan LIKE ?
+                OR k.kecamatan LIKE ?
+                OR k.kabupaten_kota LIKE ?
+                OR k.provinsi LIKE ?
+                OR EXISTS (
+                    SELECT 1 FROM tbl_anggotaKeluargaKK am
+                    WHERE am.id_kk = k.id_kk
+                      AND (am.nama_lengkap LIKE ? OR am.nik LIKE ?)
+                )
+            )
+            """
+        )
+        params.extend([q] * 9)
+
+    if provinsi and provinsi.strip():
+        conditions.append("UPPER(TRIM(k.provinsi)) = UPPER(TRIM(?))")
+        params.append(provinsi.strip())
+
+    if kabupaten_kota and kabupaten_kota.strip():
+        conditions.append("UPPER(TRIM(k.kabupaten_kota)) = UPPER(TRIM(?))")
+        params.append(kabupaten_kota.strip())
+
+    if conditions:
+        base_sql += " WHERE " + " AND ".join(conditions)
 
     base_sql += " GROUP BY k.id_kk ORDER BY k.updated_at DESC, k.id_kk DESC"
 
     rows = cursor.execute(base_sql, params).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+
+def get_kk_filter_options() -> Dict[str, List[str]]:
+    """Mengambil daftar unik Provinsi dan Kabupaten/Kota dari tbl_identitasKK untuk dropdown filter."""
+    conn = get_db_connection()
+    prov_rows = conn.execute(
+        """
+        SELECT DISTINCT TRIM(provinsi) AS val
+        FROM tbl_identitasKK
+        WHERE TRIM(COALESCE(provinsi, '')) != ''
+        ORDER BY val ASC
+        """
+    ).fetchall()
+    kab_rows = conn.execute(
+        """
+        SELECT DISTINCT TRIM(kabupaten_kota) AS val
+        FROM tbl_identitasKK
+        WHERE TRIM(COALESCE(kabupaten_kota, '')) != ''
+        ORDER BY val ASC
+        """
+    ).fetchall()
+    conn.close()
+    return {
+        "provinsi": [r["val"] for r in prov_rows],
+        "kabupaten_kota": [r["val"] for r in kab_rows],
+    }
+
+
+def get_all_kk_with_anggota(
+    search_query: str = "",
+    provinsi: str = "",
+    kabupaten_kota: str = "",
+) -> List[Dict[str, Any]]:
+    """Mengambil daftar KK terfilter beserta list seluruh anggota keluarganya (untuk ekspor)."""
+    kk_list = get_all_kk(
+        search_query=search_query,
+        provinsi=provinsi,
+        kabupaten_kota=kabupaten_kota,
+    )
+    if not kk_list:
+        return []
+
+    conn = get_db_connection()
+    kk_ids = [k["id_kk"] for k in kk_list]
+    placeholders = ",".join("?" for _ in kk_ids)
+    rows = conn.execute(
+        f"""
+        SELECT * FROM tbl_anggotaKeluargaKK
+        WHERE id_kk IN ({placeholders})
+        ORDER BY id_kk ASC, no_urut ASC, id_anggota ASC
+        """,
+        kk_ids,
+    ).fetchall()
+    conn.close()
+
+    anggota_map: Dict[int, List[Dict[str, Any]]] = {kid: [] for kid in kk_ids}
+    for r in rows:
+        anggota_map[r["id_kk"]].append(dict(r))
+
+    for kk in kk_list:
+        kk["anggota"] = anggota_map.get(kk["id_kk"], [])
+    return kk_list
 
 
 def get_kk_by_id(id_kk: int) -> Optional[Dict[str, Any]]:
