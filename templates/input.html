@@ -1,232 +1,122 @@
 {% extends "base.html" %}
-{% block title %}1. Input Citra Kartu Keluarga - DigiKK-OCR{% endblock %}
+{% block title %}Scan Kartu Keluarga &mdash; DigiKK{% endblock %}
+
+{% block extra_head %}
+<style>
+    .scan-shell {
+        max-width: 680px;
+        margin: 1.5rem auto 0;
+    }
+    .dropzone-minimal {
+        border: 1.5px dashed var(--border-strong);
+        border-radius: var(--radius-lg);
+        background-color: #fafbfc;
+        padding: 3.25rem 1.75rem;
+        text-align: center;
+        cursor: pointer;
+        transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+    .dropzone-minimal:hover,
+    .dropzone-minimal.dragover {
+        border-color: var(--accent);
+        background-color: var(--accent-soft);
+    }
+    .dropzone-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 10px;
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        color: var(--accent);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        margin-bottom: 1rem;
+    }
+    .loading-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+    .loading-box {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        max-width: 360px;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 20px 40px -16px rgba(15, 23, 42, 0.25);
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<!-- Hero Banner Dashboard -->
-<div class="hero-banner mb-4">
-    <div class="row align-items-center g-4 position-relative" style="z-index: 2;">
-        <div class="col-lg-12">
-            <div class="hero-kicker mb-2">
-                <i class="bi bi-stars text-warning"></i>
-                <span>Smart Document Extraction &bull; OpenCV + RapidOCR</span>
-            </div>
-            <h2 class="fw-extrabold mb-2 tracking-tight" style="font-weight: 800;">
-                Digitalisasi &amp; Basis Data Kartu Keluarga Otomatis
-            </h2>
-            <p class="text-white-50 mb-0" style="max-width: 780px; font-size: 0.94rem;">
-                Unggah foto atau scan Kartu Keluarga (KK), biarkan pipeline Pemrosesan Citra Digital mengekstrak seluruh teks secara otomatis, koreksi pada form interaktif, dan simpan ke tabel relasional <code>tbl_identitasKK</code> &amp; <code>tbl_anggotaKeluargaKK</code>.
+<div class="scan-shell">
+    <div class="page-header d-flex flex-wrap align-items-end justify-content-between gap-3">
+        <div>
+            <h1 class="page-title">Scan Kartu Keluarga</h1>
+            <p class="page-subtitle">
+                Unggah foto atau pindaian Kartu Keluarga. Sistem akan meluruskan, mempertajam gambar, dan membaca datanya otomatis.
             </p>
         </div>
+        {% if total_kk > 0 %}
+        <a href="{{ url_for('list_kk') }}" class="btn-clean btn-secondary-clean">
+            <span>Daftar KK</span>
+            <i class="bi bi-arrow-right"></i>
+        </a>
+        {% endif %}
     </div>
-</div>
 
-<!-- Indikator Alur Tahapan (Read-Only, Tidak Bisa Dipencet & Tidak Double) -->
-<div class="stepper-shell d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
-    <div class="d-flex flex-wrap align-items-center gap-2">
-        <span class="step-node is-active">
-            <span class="step-num">1</span>
-            <span>Halaman Input Citra KK</span>
-        </span>
-        <i class="bi bi-arrow-right text-muted mx-1"></i>
-        <span class="step-node is-idle">
-            <span class="step-num">2</span>
-            <span>Halaman Konfirmasi (Form Editable)</span>
-        </span>
-        <i class="bi bi-arrow-right text-muted mx-1"></i>
-        <span class="step-node is-idle">
-            <span class="step-num">3</span>
-            <span>Simpan &amp; Penelusuran Tabel KK</span>
-        </span>
-    </div>
-    <div class="d-none d-xl-flex align-items-center gap-2 text-muted small">
-        <i class="bi bi-shield-check text-success fs-6"></i>
-        <span>Terhubung ke SQLite: <code>tbl_identitasKK</code> &amp; <code>tbl_anggotaKeluargaKK</code></span>
-    </div>
-</div>
-
-<!-- 3 Kartu KPI / Tahapan Sistem -->
-<div class="row g-3 mb-4">
-    <div class="col-md-4">
-        <div class="kpi-card h-100">
-            <div class="kpi-icon blue">
-                <i class="bi bi-cpu-fill"></i>
-            </div>
+    <div class="surface-panel">
+        <div class="surface-header">
             <div>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-primary-subtle text-primary rounded-pill" style="font-size: 0.68rem;">TAHAP 1</span>
-                    <span class="text-muted small fw-semibold">Computer Vision</span>
-                </div>
-                <div class="fw-bold text-dark mt-1">OpenCV &amp; RapidOCR Engine</div>
-                <div class="text-muted" style="font-size: 0.76rem;">Grayscale, Contrast Stretching, Morfologi Tabel &amp; Ekstraksi Sel</div>
+                <h2 class="surface-title">Unggah Foto KK</h2>
+                <p class="surface-desc">Mendukung JPG, JPEG, PNG, WEBP, atau BMP &middot; tetap optimal untuk foto miring atau kurang tajam</p>
             </div>
         </div>
-    </div>
-    <div class="col-md-4">
-        <div class="kpi-card h-100">
-            <div class="kpi-icon amber">
-                <i class="bi bi-ui-checks-grid"></i>
-            </div>
-            <div>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-warning-subtle text-warning-emphasis rounded-pill" style="font-size: 0.68rem;">TAHAP 2</span>
-                    <span class="text-muted small fw-semibold">Human-in-the-Loop</span>
-                </div>
-                <div class="fw-bold text-dark mt-1">Form Konfirmasi Editable</div>
-                <div class="text-muted" style="font-size: 0.76rem;">Verifikasi &amp; koreksi seluruh 17 kolom KK sebelum disimpan</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="kpi-card h-100">
-            <div class="kpi-icon emerald">
-                <i class="bi bi-database-fill-check"></i>
-            </div>
-            <div class="flex-grow-1">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-success-subtle text-success rounded-pill" style="font-size: 0.68rem;">TAHAP 3</span>
-                    <span class="text-muted small fw-semibold">Basis Data Relasional</span>
-                </div>
-                <div class="fw-bold text-dark mt-1">{{ nav_total_kk }} KK &bull; {{ nav_total_anggota }} Anggota Tersimpan</div>
-                <div class="text-muted" style="font-size: 0.76rem;">CRUD lengkap pada identitas KK &amp; detail anggota keluarga</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row g-4">
-    <!-- Kolom Kiri: Form Upload Citra KK -->
-    <div class="col-lg-7">
-        <div class="card card-modern h-100">
-            <div class="card-header-navy d-flex flex-wrap justify-content-between align-items-center gap-2">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="rounded-3 bg-white bg-opacity-15 p-2 d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
-                        <i class="bi bi-cloud-arrow-up-fill fs-5 text-info"></i>
+        <div class="surface-body">
+            <form action="{{ url_for('process_image') }}" method="POST" enctype="multipart/form-data" id="uploadForm">
+                <div class="dropzone-minimal mb-4" id="dropzone" tabindex="0" role="button" aria-label="Pilih file gambar Kartu Keluarga" onclick="document.getElementById('kk_image').click();">
+                    <input type="file" name="kk_image" id="kk_image" class="d-none" accept=".png,.jpg,.jpeg,.webp,.bmp" onchange="previewSelectedFile(this)">
+                    <div id="dropzonePrompt">
+                        <div class="dropzone-icon">
+                            <i class="bi bi-camera"></i>
+                        </div>
+                        <div class="fw-semibold text-dark mb-1">Tarik dan lepas foto Kartu Keluarga di sini</div>
+                        <div class="small text-secondary">atau klik area ini untuk memilih file dari perangkat Anda</div>
                     </div>
-                    <div>
-                        <h5 class="mb-0 fw-bold">Unggah Citra Kartu Keluarga (KK)</h5>
-                        <small class="text-white-50">Pilih file gambar Kartu Keluarga dari perangkat Anda untuk diproses</small>
+                    <div id="previewContainer" class="d-none">
+                        <img id="imagePreview" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" alt="Pratinjau gambar KK" class="img-fluid rounded border mb-3" style="max-height: 300px;">
+                        <div class="fw-semibold text-dark small" id="selectedFileName"></div>
+                        <div class="small text-secondary mt-1">Klik area ini untuk mengganti gambar</div>
                     </div>
                 </div>
-                <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 rounded-pill px-3 py-1">
-                    Langkah 1 / 3
-                </span>
-            </div>
-            <div class="card-body p-4 d-flex flex-column justify-content-between">
-                <form action="{{ url_for('process_image') }}" method="POST" enctype="multipart/form-data" id="uploadForm">
-                    <div class="upload-dropzone p-4 p-md-5 text-center mb-4" id="dropzone" onclick="document.getElementById('kk_image').click();">
-                        <input type="file" name="kk_image" id="kk_image" class="d-none" accept=".png,.jpg,.jpeg,.webp,.bmp" onchange="previewSelectedFile(this)">
-                        <div id="dropzonePrompt" class="py-3">
-                            <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-4 shadow-sm"
-                                 style="width: 82px; height: 82px; background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); color: #ffffff;">
-                                <i class="bi bi-file-earmark-image-fill" style="font-size: 2.3rem;"></i>
-                            </div>
-                            <h5 class="fw-bold mb-1 text-dark">Tarik &amp; Lepas Citra Kartu Keluarga di Sini</h5>
-                            <p class="text-muted small mb-3">atau klik area ini untuk memilih file gambar dari komputer Anda</p>
-                            <div class="d-flex justify-content-center flex-wrap gap-2">
-                                <span class="badge bg-white text-secondary border rounded-pill px-3 py-1">JPG / JPEG</span>
-                                <span class="badge bg-white text-secondary border rounded-pill px-3 py-1">PNG</span>
-                                <span class="badge bg-white text-secondary border rounded-pill px-3 py-1">WEBP</span>
-                                <span class="badge bg-white text-secondary border rounded-pill px-3 py-1">BMP</span>
-                            </div>
-                        </div>
-                        <div id="previewContainer" class="d-none py-2">
-                            <div class="position-relative d-inline-block mb-3">
-                                <img id="imagePreview" src="" alt="Preview KK" class="img-fluid rounded-4 shadow border border-2 border-primary" style="max-height: 290px;">
-                                <span class="position-absolute top-0 end-0 translate-middle badge rounded-pill bg-success shadow">
-                                    <i class="bi bi-check-lg me-1"></i>Siap Diproses
-                                </span>
-                            </div>
-                            <div class="fw-bold text-primary" id="selectedFileName"></div>
-                            <div class="mt-2 small text-muted">
-                                Klik area ini jika ingin mengganti gambar lain
-                            </div>
-                        </div>
-                    </div>
 
-                    <div class="rounded-4 p-3 mb-4 d-flex align-items-start gap-3" style="background: #f8fafc; border: 1px solid #e2e8f0;">
-                        <div class="rounded-3 bg-primary bg-opacity-10 text-primary p-2 d-flex align-items-center justify-content-center flex-shrink-0">
-                            <i class="bi bi-lightbulb-fill fs-5"></i>
-                        </div>
-                        <div class="small text-secondary">
-                            <strong class="text-dark d-block mb-1">Alur Pembacaan &amp; Koreksi Data:</strong>
-                            Setelah gambar diproses, hasil ekstraksi akan ditampilkan terlebih dahulu pada <strong>Halaman Konfirmasi (Form Editable)</strong> agar Anda dapat memeriksa atau mengoreksi data sebelum disimpan ke database.
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn btn-brand-gradient btn-lg w-100 py-3 fw-bold rounded-4 fs-6">
-                        <i class="bi bi-magic me-2"></i> Proses &amp; Ekstrak Data Kartu Keluarga Sekarang
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <span class="small text-secondary">Hasil pembacaan bisa dikoreksi sebelum disimpan.</span>
+                    <button type="submit" class="btn-clean btn-primary-clean btn-clean-lg">
+                        <i class="bi bi-upc-scan"></i>
+                        <span>Scan Kartu Keluarga</span>
                     </button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Kolom Kanan: Contoh Dummy Citra KK Siap Uji -->
-    <div class="col-lg-5">
-        <div class="card card-modern h-100">
-            <div class="card-header-soft d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-2">
-                    <div class="rounded-3 bg-warning bg-opacity-15 text-warning-emphasis p-2 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-lightning-charge-fill fs-5"></i>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 fw-bold text-dark">Uji Instan dengan Citra KK Contoh</h6>
-                        <small class="text-muted">Klik <strong>"Proses Contoh Ini"</strong> untuk langsung mencoba OCR</small>
-                    </div>
                 </div>
-                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1">
-                    {{ samples|length }} Sampel
-                </span>
-            </div>
-            <div class="card-body p-3">
-                {% for s in samples %}
-                <div class="sample-item-card mb-3">
-                    <div class="d-flex align-items-center gap-3">
-                        <img src="{{ url_for('static', filename=s.rel_path) }}"
-                             alt="{{ s.label }}"
-                             class="stage-thumb bg-white flex-shrink-0"
-                             style="width: 126px; height: 92px; object-fit: cover;"
-                             title="Klik gambar untuk memperbesar"
-                             onclick="showImageModal('{{ url_for('static', filename=s.rel_path) }}', '{{ s.label }}')">
-                        <div class="flex-grow-1 min-w-0">
-                            <div class="fw-bold text-dark small mb-1">{{ s.label }}</div>
-                            <div class="d-flex flex-wrap gap-1 mb-2">
-                                <span class="badge bg-light text-dark border font-monospace" style="font-size: 0.72rem;">
-                                    <i class="bi bi-hash text-primary"></i>{{ s.no_kk }}
-                                </span>
-                                <span class="badge bg-primary-subtle text-primary" style="font-size: 0.72rem;">
-                                    <i class="bi bi-person-fill me-1"></i>{{ s.kepala }}
-                                </span>
-                            </div>
-                            <div class="d-flex flex-wrap gap-2">
-                                <form action="{{ url_for('process_image') }}" method="POST" class="d-inline" onsubmit="showLoadingOverlay()">
-                                    <input type="hidden" name="sample_filename" value="{{ s.filename }}">
-                                    <button type="submit" class="btn btn-sm btn-brand-gradient fw-semibold rounded-pill px-3">
-                                        <i class="bi bi-play-fill me-1"></i> Proses Contoh Ini
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
+            </form>
         </div>
     </div>
 </div>
 
-<!-- Overlay Loading Saat Memproses Citra KK -->
-<div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-none align-items-center justify-content-center"
-     style="background: rgba(6, 13, 30, 0.8); backdrop-filter: blur(8px); z-index: 9999;">
-    <div class="bg-white p-4 p-md-5 rounded-4 shadow-lg text-center border" style="max-width: 430px;">
-        <div class="spinner-border text-primary mb-3" style="width: 3.2rem; height: 3.2rem;" role="status"></div>
-        <h5 class="fw-bold mb-2 text-dark">Mengekstrak Data Kartu Keluarga...</h5>
-        <p class="text-muted small mb-3">
-            Sedang menjalankan prapemrosesan OpenCV, deteksi garis tabel morfologi, dan pembacaan teks RapidOCR.
-        </p>
-        <div class="progress rounded-pill" style="height: 8px;">
-            <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary w-100"></div>
+<div id="loadingOverlay" class="loading-backdrop d-none">
+    <div class="loading-box">
+        <div class="spinner-border text-primary mb-3" style="width: 2rem; height: 2rem;" role="status">
+            <span class="visually-hidden">Memuat...</span>
         </div>
+        <div class="fw-semibold text-dark mb-1">Memindai Kartu Keluarga</div>
+        <div class="small text-secondary">Meluruskan dokumen, meningkatkan kontras, dan membaca seluruh kolom KK...</div>
     </div>
 </div>
 {% endblock %}
@@ -239,7 +129,7 @@
             const reader = new FileReader();
             reader.onload = function(e) {
                 document.getElementById('imagePreview').src = e.target.result;
-                document.getElementById('selectedFileName').innerText = file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+                document.getElementById('selectedFileName').textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
                 document.getElementById('dropzonePrompt').classList.add('d-none');
                 document.getElementById('previewContainer').classList.remove('d-none');
             };
@@ -257,13 +147,19 @@
         const fileInput = document.getElementById('kk_image');
         if (!fileInput.files || fileInput.files.length === 0) {
             e.preventDefault();
-            alert('Silakan pilih file gambar Kartu Keluarga terlebih dahulu, atau klik tombol "Proses Contoh Ini" di sebelah kanan.');
+            alert('Silakan pilih foto Kartu Keluarga terlebih dahulu.');
             return;
         }
         showLoadingOverlay();
     });
 
     const dropzone = document.getElementById('dropzone');
+    dropzone.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            document.getElementById('kk_image').click();
+        }
+    });
     ['dragenter', 'dragover'].forEach(evt => {
         dropzone.addEventListener(evt, e => {
             e.preventDefault();

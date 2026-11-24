@@ -50,9 +50,8 @@ def inject_global_context():
 
 @app.route("/", methods=["GET"])
 def index():
-    samples = ensure_sample_images()
     total_kk = len(db.get_all_kk())
-    return render_template("input.html", samples=samples, total_kk=total_kk)
+    return render_template("input.html", total_kk=total_kk)
 
 
 @app.route("/process", methods=["POST"])
